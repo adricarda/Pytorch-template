@@ -119,7 +119,7 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
         plot = get_predictions_plot(batch_sample, predictions, batch_gt)
         writer.add_image('Predictions', plot, epoch, dataformats='HWC')                          
         
-        is_best = val_loss >= best_loss
+        is_best = val_loss <= best_loss
 
         # Save weights
         utils.save_checkpoint({'epoch': epoch + 1,

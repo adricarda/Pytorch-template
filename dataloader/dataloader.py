@@ -4,7 +4,7 @@ import io
 import torch
 import numpy as np
 import torchvision.transforms as transforms
-from torchvision.transforms.functional import to_tensor
+from torchvision.transforms.functional import to_tensor, to_pil_image
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 from torchvision.datasets import Cityscapes
@@ -158,7 +158,7 @@ def get_predictions_plot(batch_sample, predictions, batch_gt):
     for image, prediction, gt, (axis1, axis2, axis3) in zip(batch_sample, predictions, batch_gt, m_axs.T):
         
         image = re_normalize(image, mean, std)
-        image = torch.to_pil_image(image)
+        image = to_pil_image(image)
         axis1.imshow(image)
         axis1.set_axis_off()
 
