@@ -7,7 +7,7 @@ import os
 import numpy as np
 import torch
 import utils
-import model.net as net
+from model.net import get_network
 from tqdm import tqdm
 import dataloader.dataloader as data_loader
 from model.losses import get_loss_fn
@@ -29,7 +29,9 @@ def evaluate(model,loss_fn,dataset_dl,opt=None, metrics=None, params=None):
     model.eval()
     running_loss=utils.RunningAverage()
     num_batches=len(dataset_dl)
-    metrics.reset()
+    if metrics is not None:
+        for metric_name, metric in metrics.items(): 
+            metric.reset()
 
     with torch.no_grad():        
         for (xb, yb) in tqdm(dataset_dl):
@@ -39,10 +41,18 @@ def evaluate(model,loss_fn,dataset_dl,opt=None, metrics=None, params=None):
             
             loss_b = loss_fn(output, yb)
             running_loss.update(loss_b.item())
-            output=torch.argmax(output.detach(), dim=1)
-            metrics.add(output, yb.detach())
+            if metrics is not None:            
+                output=torch.argmax(output.detach(), dim=1)
+                for metric_name, metric in metrics.items(): 
+                    metric.add(output, yb.detach())
 
-    return loss_b.item(), metrics.value()
+    if metrics is not None:
+        metrics_results = {}
+        for metric_name, metric in metrics.items(): 
+            metrics_results[metric_name] = metric.value()                  
+        return running_loss(), metrics_results
+    else:   
+        return running_loss(), None
 
     #     # compute all metrics on this batch
     #     summary_batch = {metric: metrics[metric](output_batch, labels_batch)
@@ -79,31 +89,25 @@ if __name__ == '__main__':
     if torch.cuda.is_available():
         torch.cuda.manual_seed(42)
 
-    # Get the logger
-    utils.set_logger(os.path.join(args.model_dir, 'evaluate.log'))
-
-    # Create the input data pipeline
-    logging.info("Creating the dataset...")
-
     # fetch dataloaders
     dataloaders = data_loader.fetch_dataloader(['test'], args.data_dir, params)
     test_dl = dataloaders['test']
 
-    logging.info("- done.")
-
     # Define the model
-    model = net.Net(params).to(params.device)
+    model = get_network(params).to(params.device)
 
     # fetch loss function and metrics
-    loss_fn = get_loss_fn(params.loss_fn)
-    metrics = get_metrics(params.metrics)
-
-    logging.info("Starting evaluation")
+    loss_fn = get_loss_fn(loss_name=params.loss_fn , ignore_index=19)
+    #num_classes+1 for background.
+    metrics = {}
+    for metric in params.metrics:
+        metrics[metric]= get_metrics(metrics_name=metric,
+                num_classes=params.num_classes+1, ignore_index=params.ignore_index)
 
     # Reload weights from the saved file
     utils.load_checkpoint(model, True, args.checkpoint_dir)
 
     # Evaluate
     eval_loss, test_metrics = evaluate(model, loss_fn, test_dl, metrics, params)
-    # save_path = os.path.join(args.model_dir, "metrics_test.json")
-    # utils.save_dict_to_json(test_metrics, save_path)
+    best_json_path = os.path.join(args.model_dir, "evaluation.json")
+    utils.save_dict_to_json(test_metrics, best_json_path)      

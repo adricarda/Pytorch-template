@@ -48,7 +48,8 @@ def train_epoch(model,loss_fn,dataset_dl,opt=None, metrics=None, params=None):
     num_batches=len(dataset_dl)
 
     if metrics is not None:
-        metrics.reset()
+        for metric_name, metric in metrics.items(): 
+            metric.reset()
     
     for (xb, yb) in tqdm(dataset_dl):
         xb=xb.to(params.device)
@@ -63,12 +64,16 @@ def train_epoch(model,loss_fn,dataset_dl,opt=None, metrics=None, params=None):
 
         running_loss.update(loss_b.item())
 
-        if metrics is not None:
+        if metrics is not None:            
             output=torch.argmax(output.detach(), dim=1)
-            metrics.add(output, yb.detach())
+            for metric_name, metric in metrics.items(): 
+                metric.add(output, yb.detach())
 
     if metrics is not None:
-        return loss_b.item(), metrics.value()
+        metrics_results = {}
+        for metric_name, metric in metrics.items(): 
+            metrics_results[metric_name] = metric.value()             
+        return running_loss(), metrics_results
     else:   
         return running_loss(), None
 
@@ -100,21 +105,23 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
         logging.info('Epoch {}/{}, current lr={}'.format(epoch, start_epoch+params.num_epochs-1, current_lr))
 
         model.train()
-        train_loss, train_metric = train_epoch(model, loss_fn, train_dl, opt, metrics, params)
+        train_loss, train_metrics = train_epoch(model, loss_fn, train_dl, opt, metrics, params)
 
         # Evaluate for one epoch on validation set
-        val_loss, val_metric = evaluate(model, loss_fn, val_dl, metrics=metrics, params=params)
+        val_loss, val_metrics = evaluate(model, loss_fn, val_dl, metrics=metrics, params=params)
 
         
         writer.add_scalars('Loss', {
                                     'Training': train_loss,
                                     'Validation': val_loss,
                                   }, epoch)
-        writer.add_scalars('Metric', {
-                                    'Training': train_metric[1],
-                                    'Validation': val_metric[1],
-                                  }, epoch)
-        
+
+        for (train_metric_name, train_metric_results), (val_metric_name, val_metric_results) in zip(train_metrics.items(), val_metrics.items()): 
+            writer.add_scalars(train_metric_name, {
+                                        'Training': train_metric_results[0],
+                                        'Validation': val_metric_results[0],
+                                    }, epoch)
+            
         predictions = inference(model, batch_sample)
         plot = get_predictions_plot(batch_sample, predictions, batch_gt)
         writer.add_image('Predictions', plot, epoch, dataformats='HWC')                          
@@ -132,6 +139,9 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
         if is_best:
             logging.info("- Found new best accuracy")
             best_loss = val_loss
+            # Save best val metrics in a json file in the model directory
+            best_json_path = os.path.join(model_dir, "metrics_val_best_weights.json")
+            utils.save_dict_to_json(val_metrics, best_json_path)
 
         lr_scheduler.step(val_loss)
         if current_lr != get_lr(opt):
@@ -139,19 +149,10 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
             model.load_state_dict(best_model_wts) 
             
         logging.info("\ntrain loss: %.3f, val loss: %.3f" %(train_loss, val_loss))
-        logging.info("train metric: %.3f, val metric: %.3f" %(train_metric[1], val_metric[1]))
+        for (train_metric_name, train_metric_results), (val_metric_name, val_metric_results) in zip(train_metrics.items(), val_metrics.items()): 
+            logging.info("train %s: %.3f, val %s: %.3f" %(train_metric_name, train_metric_results, val_metric_name, val_metric_results))
+            
         logging.info("-"*20)             
-
-        #     # Save best val metrics in a json file in the model directory
-        #     best_json_path = os.path.join(
-        #         model_dir, "metrics_val_best_weights.json")
-        #     utils.save_dict_to_json(val_metrics, best_json_path)
-
-        # # Save latest val metrics in a json file in the model directory
-        # last_json_path = os.path.join(
-        #     model_dir, "metrics_val_last_weights.json")
-        # utils.save_dict_to_json(val_metrics, last_json_path)
-
 
 if __name__ == '__main__':
 
@@ -192,8 +193,11 @@ if __name__ == '__main__':
 
     # fetch loss function and metrics
     loss_fn = get_loss_fn(loss_name=params.loss_fn , ignore_index=19)
-    #num_classes+1 for background. 
-    metrics = get_metrics(metrics_name=params.metrics, num_classes=params.num_classes+1, ignore_index=params.ignore_index)
+    #num_classes+1 for background.
+    metrics = {}
+    for metric in params.metrics:
+        metrics[metric]= get_metrics(metrics_name=metric,
+                num_classes=params.num_classes+1, ignore_index=params.ignore_index)
 
     # Train the model
     logging.info("Starting training for {} epoch(s)".format(params.num_epochs))

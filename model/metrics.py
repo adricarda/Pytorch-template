@@ -3,10 +3,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-def accuracy(outputs, labels):
-    outputs = np.argmax(outputs, axis=1)
-    return np.sum(outputs==labels)/float(labels.size)
-
 class ConfusionMatrix():
     """Constructs a confusion matrix for a multi-class classification problems.
     Does not support multi-label, multi-class problems.
@@ -170,10 +166,56 @@ class IoU():
         with np.errstate(divide='ignore', invalid='ignore'):
             iou = true_positive / (true_positive + false_positive + false_negative)
 
-        return iou, np.nanmean(iou)
+        return [np.nanmean(iou), iou]
+
+class Accuracy():
+
+    def __init__(self, num_classes, normalized=False, ignore_index=None):
+        super().__init__()
+        self.conf_metric = ConfusionMatrix(num_classes, normalized)
+
+        if ignore_index is None:
+            self.ignore_index = None
+        elif isinstance(ignore_index, int):
+            self.ignore_index = (ignore_index,)
+        else:
+            try:
+                self.ignore_index = tuple(ignore_index)
+            except TypeError:
+                raise ValueError("'ignore_index' must be an int or iterable")
+
+    def reset(self):
+        self.conf_metric.reset()
+
+    def add(self, predicted, target):
+        # Dimensions check
+        assert predicted.size(0) == target.size(0), \
+            'number of targets and predicted outputs do not match'
+        assert predicted.dim() == 3 or predicted.dim() == 4, \
+            "predictions must be of dimension (N, H, W) or (N, K, H, W)"
+        assert target.dim() == 3 or target.dim() == 4, \
+            "targets must be of dimension (N, H, W) or (N, K, H, W)"
+
+        # If the tensor is in categorical format convert it to integer format
+        if predicted.dim() == 4:
+            _, predicted = predicted.max(1)
+        if target.dim() == 4:
+            _, target = target.max(1)
+
+        self.conf_metric.add(predicted.view(-1), target.view(-1))
+
+    def value(self):
+
+        conf_matrix = self.conf_metric.value()
+        if self.ignore_index is not None:
+            for index in self.ignore_index:
+                conf_matrix[:, self.ignore_index] = 0
+                conf_matrix[self.ignore_index, :] = 0
+
+        return [np.diag(conf_matrix).sum() / conf_matrix.sum()]
 
 def get_metrics(metrics_name="iou", **kwargs):
     if metrics_name=='iou':
         return IoU(**kwargs)
-    else:
-        None
+    if metrics_name=='accuracy':
+        return Accuracy(**kwargs)

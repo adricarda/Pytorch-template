@@ -9,7 +9,7 @@
     "num_workers": 8,
     "start_epoch": 0,
     "loss_fn": "crossentropy",
-    "metrics": "iou",
+    "metrics": ["iou", "accuracy"],
     "architecture": "deeplab_resnet50",
     "ignore_index": 19,
     "split_validation": 0.2
