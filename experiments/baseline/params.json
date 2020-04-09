@@ -1,0 +1,10 @@
+{
+    "num_classes": 19,
+    "learning_rate": 1e-4,
+    "batch_size": 32,
+    "num_epochs": 10,
+    "num_workers": 4,
+    "start_epoch": 0,
+    "losses": "crossentropy",
+    "metrics": "accuracy"
+}
