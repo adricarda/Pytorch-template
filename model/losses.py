@@ -4,10 +4,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-def crossentropy(outputs, labels):
-
-    num_examples = outputs.size()[0]
-    return -torch.sum(outputs[range(num_examples), labels])/num_examples
+def crossentropy(ignore_index=19):
+    return nn.CrossEntropyLoss(ignore_index)
 
 def get_loss_fn(loss_name):
 

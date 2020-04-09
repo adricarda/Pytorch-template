@@ -180,8 +180,8 @@ if __name__ == '__main__':
     logging.info("Loading the datasets...")
 
     # fetch dataloaders
-    train_dl = data_loader.fetch_dataloader('data_dir', 'train')
-    val_dl = data_loader.fetch_dataloader('data_dir', 'val')
+    train_dl = data_loader.fetch_dataloader('data_dir', 'train', params)
+    val_dl = data_loader.fetch_dataloader('data_dir', 'val', params)
 
     logging.info("- done.")
 

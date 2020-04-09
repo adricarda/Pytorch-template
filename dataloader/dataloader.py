@@ -4,6 +4,7 @@ import io
 import torch
 import numpy as np
 import torchvision.transforms as transforms
+from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 from torchvision.datasets import Cityscapes
 
@@ -90,6 +91,7 @@ class CityScapesDataset(Cityscapes):
                  transform=None, target_transform=None, transforms=None, ignore_label=19, classes=None):
     
         self.classes = classes
+        print(root)
         super(CityScapesDataset, self).__init__(root, split, mode, target_type,
                  transform, target_transform, transforms)
 
@@ -114,10 +116,17 @@ class CityScapesDataset(Cityscapes):
         return img, mask
 
 
-def fetch_dataloader(data_dir, split, **kwargs):
+def fetch_dataloader(data_dir, split, params):
+    if split == 'train':
+        dataset=CityScapesDataset(data_dir, split=split, mode='fine',
+                    target_type='semantic', transforms=transform_train, classes=params.num_classes)
+        return DataLoader(dataset, batch_size_train=params.batch_size_train, shuffle=True, num_workers=params.num_workers)
 
-    return DataLoader(data_dir, split=split, mode='fine',
-                     target_type='semantic', transforms=transform_train, classes=classes)
+    else:
+        dataset=CityScapesDataset(data_dir, split=split, mode='fine',
+                    target_type='semantic', transforms=transform_val, classes=params.num_classes)
+        return DataLoader(dataset, batch_size_val=params.batch_size_val, shuffle=False, num_workers=params.num_workers)
+
 
 def colorize_mask(mask, palette):
     # mask: numpy array of the mask
