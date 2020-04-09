@@ -43,7 +43,7 @@ def inference(model, batch):
         y_pred = torch.argmax(y_pred,axis=1)
     return y_pred
 
-def train_epoch(model,loss_func,dataset_dl,opt=None, metrics=None, params=None):
+def train_epoch(model,loss_fn,dataset_dl,opt=None, metrics=None, params=None):
     running_loss=utils.RunningAverage()
     num_batches=len(dataset_dl)
 
@@ -53,16 +53,15 @@ def train_epoch(model,loss_func,dataset_dl,opt=None, metrics=None, params=None):
     for (xb, yb) in tqdm(dataset_dl):
         xb=xb.to(params.device)
         yb=yb.to(params.device)    
-        output=model(xb)
-        
-        loss_b = loss_func(output, yb)
-    
+        output=model(xb)['out']
+        loss_b = loss_fn(output, yb)
+
         if opt is not None:
             opt.zero_grad()
             loss_b.backward()
             opt.step()
 
-        running_loss.update(loss_b.item)
+        running_loss.update(loss_b.item())
 
         if metrics is not None:
             output=torch.argmax(output.detach(), dim=1)
@@ -104,7 +103,7 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
         train_loss, train_metric = train_epoch(model, loss_fn, train_dl, opt, metrics, params)
 
         # Evaluate for one epoch on validation set
-        val_loss, val_metric = evaluate(model, loss_fn, val_dl, metrics, params)
+        val_loss, val_metric = evaluate(model, loss_fn, val_dl, metrics=metrics, params=params)
 
         
         writer.add_scalars('Loss', {
@@ -120,7 +119,6 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
         plot = get_predictions_plot(batch_sample, predictions, batch_gt)
         writer.add_image('Predictions', plot, epoch, dataformats='HWC')                          
         
-        # val_acc = val_metrics['accuracy']
         is_best = val_loss >= best_loss
 
         # Save weights
@@ -193,8 +191,9 @@ if __name__ == '__main__':
     lr_scheduler = ReduceLROnPlateau(optimizer, mode='min',factor=0.5, patience=4,verbose=1)
 
     # fetch loss function and metrics
-    loss_fn = get_loss_fn(params.loss_fn)
-    metrics = get_metrics(metrics_name=params.metrics, num_classes=params.num_classes, ignore_index=params.ignore_index)
+    loss_fn = get_loss_fn(loss_name=params.loss_fn , ignore_index=19)
+    #num_classes+1 for background. 
+    metrics = get_metrics(metrics_name=params.metrics, num_classes=params.num_classes+1, ignore_index=params.ignore_index)
 
     # Train the model
     logging.info("Starting training for {} epoch(s)".format(params.num_epochs))

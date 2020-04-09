@@ -8,7 +8,7 @@ import numpy as np
 import torch
 import utils
 import model.net as net
-import tqdm
+from tqdm import tqdm
 import dataloader.dataloader as data_loader
 from model.losses import get_loss_fn
 from model.metrics import get_metrics
@@ -23,7 +23,7 @@ parser.add_argument('--checkpoint_dir', default="experiments/baseline/checkpoint
                     training") 
 
 
-def evaluate(model,loss_func,dataset_dl,opt=None, metrics=None, params=None):
+def evaluate(model,loss_fn,dataset_dl,opt=None, metrics=None, params=None):
 
     # set model to evaluation mode
     model.eval()
@@ -35,10 +35,10 @@ def evaluate(model,loss_func,dataset_dl,opt=None, metrics=None, params=None):
         for (xb, yb) in tqdm(dataset_dl):
             xb=xb.to(params.device)
             yb=yb.to(params.device)    
-            output=model(xb)
+            output=model(xb)['out']
             
-            loss_b = loss_func(output, yb)
-            running_loss.update(loss_b.item)
+            loss_b = loss_fn(output, yb)
+            running_loss.update(loss_b.item())
             output=torch.argmax(output.detach(), dim=1)
             metrics.add(output, yb.detach())
 

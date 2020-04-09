@@ -6964,3 +6964,10 @@ experiments/baseline/train.log
 experiments/baseline/tensorboard/events.out.tfevents.1586443860.90bd03dd9d48.5100.0
 experiments/baseline/tensorboard/events.out.tfevents.1586443923.90bd03dd9d48.5154.0
 experiments/baseline/tensorboard/events.out.tfevents.1586444164.90bd03dd9d48.5331.0
+experiments/baseline/tensorboard/events.out.tfevents.1586450757.b391f09b500e.5452.0
+experiments/baseline/tensorboard/events.out.tfevents.1586451332.b391f09b500e.5783.0
+experiments/baseline/tensorboard/events.out.tfevents.1586451907.b391f09b500e.6051.0
+experiments/baseline/tensorboard/events.out.tfevents.1586453336.b391f09b500e.7087.0
+experiments/baseline/tensorboard/events.out.tfevents.1586453682.b391f09b500e.7629.0
+ngrok
+ngrok-stable-linux-amd64.zip

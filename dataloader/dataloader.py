@@ -8,6 +8,8 @@ from torchvision.transforms.functional import to_tensor
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 from torchvision.datasets import Cityscapes
+from sklearn.model_selection import ShuffleSplit
+from torch.utils.data import Subset
 
 
 from PIL import Image
@@ -21,7 +23,8 @@ from albumentations import (
 from torch.utils.data import Dataset, DataLoader
 from collections import namedtuple
 
-
+mean = [0.286, 0.325, 0.283]
+std = [0.176, 0.180, 0.177]
 
 # Based on https://github.com/mcordts/cityscapesScripts
 CityscapesClass = namedtuple('CityscapesClass', ['name', 'id', 'train_id', 'category', 'category_id',
@@ -65,10 +68,6 @@ classes = [
     CityscapesClass('license plate', -1, 19, 'vehicle', 7, False, True, (0, 0, 142)),
 ]
 
-mean = [0.286, 0.325, 0.283]
-std = [0.176, 0.180, 0.177]
-h, w = 512, 512
-
 palette = []
 labels = range(19)
 for cs_class in classes:
@@ -79,13 +78,6 @@ for cs_class in classes:
 zero_pad = 256 * 3 - len(palette)
 for i in range(zero_pad):
     palette.append(0)
-
-transform_train = Compose([RandomCrop(h,w),
-                HorizontalFlip(p=0.5), 
-                Normalize(mean=mean,std=std)])
-
-transform_val = Compose( [Normalize(mean=mean,std=std)])
-
 
 class CityScapesDataset(Cityscapes):
     def __init__(self, root, split='train', mode='fine', target_type='instance',
@@ -117,14 +109,28 @@ class CityScapesDataset(Cityscapes):
 
 
 def fetch_dataloader(data_dir, split, params):
+    h, w = params.crop_h, params.crop_w
+
     if split == 'train':
+        transform_train = Compose([RandomCrop(h,w),
+                    HorizontalFlip(p=0.5), 
+                    Normalize(mean=mean,std=std)])
+
         dataset=CityScapesDataset(data_dir, split=split, mode='fine',
                     target_type='semantic', transforms=transform_train, classes=classes)
         return DataLoader(dataset, batch_size=params.batch_size_train, shuffle=True, num_workers=params.num_workers)
 
     else:
+        transform_val = Compose( [Normalize(mean=mean,std=std)])
         dataset=CityScapesDataset(data_dir, split=split, mode='fine',
                     target_type='semantic', transforms=transform_val, classes=classes)
+        #reduce validation data to speed up training
+        if "split_validation" in params.dict:
+            ss = ShuffleSplit(n_splits=1, test_size=params.split_validation, random_state=42)
+            indexes=range(len(dataset))
+            split1, split2 = next(ss.split(indexes))
+            dataset=Subset(dataset, split2)        
+
         return DataLoader(dataset, batch_size=params.batch_size_val, shuffle=False, num_workers=params.num_workers)
 
 

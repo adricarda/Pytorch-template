@@ -37,14 +37,6 @@ class Params():
 
 class RunningAverage():
     """A simple class that maintains the running average of a quantity
-    
-    Example:
-    ```
-    loss_avg = RunningAverage()
-    loss_avg.update(2)
-    loss_avg.update(4)
-    loss_avg() = 3
-    ```
     """
     def __init__(self):
         self.steps = 0
