@@ -5,6 +5,8 @@ import torch
 import numpy as np
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
+from torchvision.datasets import Cityscapes
+
 
 from PIL import Image
 from albumentations import (

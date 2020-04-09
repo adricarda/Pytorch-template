@@ -1,25 +1,23 @@
 """Train the model"""
 
 import argparse
+import copy
 import logging
 import os
-import copy
 
 import numpy as np
 import torch
 import torch.optim as optim
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-import utils
 import dataloader.dataloader as data_loader
+import utils
 from evaluate import evaluate
 from model.losses import get_loss_fn
 from model.metrics import get_metrics
-from model.net import get_network 
-
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch.utils.tensorboard import SummaryWriter
-
+from model.net import get_network
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_dir', default='data',
