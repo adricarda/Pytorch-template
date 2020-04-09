@@ -89,7 +89,7 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
         checkpoint = torch.load(ckpt_file_path)
         start_epoch = checkpoint['epoch']
         model.load_state_dict(checkpoint['state_dict'])
-        opt.load_state_dict(checkpoint['optimizer'])
+        opt.load_state_dict(checkpoint['optim_dict'])
         print("=> loaded checkpoint form {} (epoch {})".format(ckpt_file_path, checkpoint['epoch']))
     else:
         print("=> Initializing from scratch")
