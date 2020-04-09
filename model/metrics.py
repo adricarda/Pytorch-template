@@ -166,7 +166,7 @@ class IoU():
         with np.errstate(divide='ignore', invalid='ignore'):
             iou = true_positive / (true_positive + false_positive + false_negative)
 
-        return [np.nanmean(iou), iou]
+        return [np.nanmean(iou), iou.tolist()]
 
 class Accuracy():
 
