@@ -150,7 +150,7 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
             
         logging.info("\ntrain loss: %.3f, val loss: %.3f" %(train_loss, val_loss))
         for (train_metric_name, train_metric_results), (val_metric_name, val_metric_results) in zip(train_metrics.items(), val_metrics.items()): 
-            logging.info("train %s: %.3f, val %s: %.3f" %(train_metric_name, train_metric_results, val_metric_name, val_metric_results))
+            logging.info("train %s: %.3f, val %s: %.3f" %(train_metric_name, train_metric_results[0], val_metric_name, val_metric_results[0]))
             
         logging.info("-"*20)             
 
