@@ -131,7 +131,7 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
         # Save weights
         utils.save_checkpoint({'epoch': epoch + 1,
                                'state_dict': model.state_dict(),
-                               'optim_dict': optimizer.state_dict()},
+                               'optim_dict': opt.state_dict()},
                               is_best=is_best,
                               checkpoint_dir=model_dir)
 
@@ -188,8 +188,8 @@ if __name__ == '__main__':
 
     # Define the model and optimizer
     model = get_network(params).to(params.device)
-    optimizer = optim.Adam(model.parameters(), lr=params.learning_rate)
-    lr_scheduler = ReduceLROnPlateau(optimizer, mode='min',factor=0.5, patience=4,verbose=1)
+    opt = optim.AdamW(model.parameters(), lr=params.learning_rate)
+    lr_scheduler = ReduceLROnPlateau(opt, mode='min',factor=0.5, patience=4,verbose=1)
 
     # fetch loss function and metrics
     loss_fn = get_loss_fn(loss_name=params.loss_fn , ignore_index=19)
@@ -201,5 +201,5 @@ if __name__ == '__main__':
 
     # Train the model
     logging.info("Starting training for {} epoch(s)".format(params.num_epochs))
-    train_and_evaluate(model, train_dl, val_dl, optimizer, loss_fn, metrics,
+    train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics,
             params, lr_scheduler, args.model_dir, ckpt_filename, writer)

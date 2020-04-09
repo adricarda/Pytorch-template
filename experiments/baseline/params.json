@@ -5,12 +5,12 @@
     "batch_size_val": 2,
     "crop_h": 256,
     "crop_w": 256,
-    "num_epochs": 10,
+    "num_epochs": 70,
     "num_workers": 8,
     "start_epoch": 0,
     "loss_fn": "crossentropy",
     "metrics": ["iou", "accuracy"],
-    "architecture": "deeplab_resnet50",
+    "architecture": "deeplab_resnet101",
     "ignore_index": 19,
     "split_validation": 0.2
 }
