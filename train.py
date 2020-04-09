@@ -13,6 +13,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 import dataloader.dataloader as data_loader
+from dataloader.dataloader import get_predictions_plot
 import utils
 from evaluate import evaluate
 from model.losses import get_loss_fn
@@ -116,8 +117,8 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
                                   }, epoch)
         
         predictions = inference(model, batch_sample)
-        # plot = get_predictions_plot(batch_sample, predictions, batch_gt)
-        # writer.add_image('Predictions', plot, epoch, dataformats='HWC')                          
+        plot = get_predictions_plot(batch_sample, predictions, batch_gt)
+        writer.add_image('Predictions', plot, epoch, dataformats='HWC')                          
         
         # val_acc = val_metrics['accuracy']
         is_best = val_loss >= best_loss
