@@ -99,7 +99,7 @@ def save_dict_to_json(d, json_path):
 def save_checkpoint(state, is_best, checkpoint_dir='./', filename='checkpoint.tar'):
     filepath = os.path.join(checkpoint_dir, filename)
     if not os.path.exists(checkpoint_dir):
-        print("Checkpoint Directory does not exist! Making directory {}".format(path))
+        print("Checkpoint Directory does not exist! Making directory {}".format(checkpoint_dir))
         os.mkdir(checkpoint_dir)
     torch.save(state, filepath)
     if is_best:

@@ -172,8 +172,7 @@ class IoU():
 
         return iou, np.nanmean(iou)
 
-def get_metrics(metrics_name, **kwargs):
-
+def get_metrics(metrics_name="iou", **kwargs):
     if metrics_name=='iou':
         return IoU(**kwargs)
     else:

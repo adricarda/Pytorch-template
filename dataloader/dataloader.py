@@ -4,6 +4,7 @@ import io
 import torch
 import numpy as np
 import torchvision.transforms as transforms
+from torchvision.transforms.functional import to_tensor
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 from torchvision.datasets import Cityscapes
@@ -91,7 +92,6 @@ class CityScapesDataset(Cityscapes):
                  transform=None, target_transform=None, transforms=None, ignore_label=19, classes=None):
     
         self.classes = classes
-        print(root)
         super(CityScapesDataset, self).__init__(root, split, mode, target_type,
                  transform, target_transform, transforms)
 
@@ -111,7 +111,7 @@ class CityScapesDataset(Cityscapes):
             transformed = self.transforms(image=np.array(img), mask=np.array(mask))
             img = transformed['image']
             mask = transformed['mask']
-        img = torch.to_tensor(img)            
+        img = to_tensor(img)            
         mask = torch.from_numpy(np.array(mask)).type(torch.long)    
         return img, mask
 
@@ -119,13 +119,13 @@ class CityScapesDataset(Cityscapes):
 def fetch_dataloader(data_dir, split, params):
     if split == 'train':
         dataset=CityScapesDataset(data_dir, split=split, mode='fine',
-                    target_type='semantic', transforms=transform_train, classes=params.num_classes)
-        return DataLoader(dataset, batch_size_train=params.batch_size_train, shuffle=True, num_workers=params.num_workers)
+                    target_type='semantic', transforms=transform_train, classes=classes)
+        return DataLoader(dataset, batch_size=params.batch_size_train, shuffle=True, num_workers=params.num_workers)
 
     else:
         dataset=CityScapesDataset(data_dir, split=split, mode='fine',
-                    target_type='semantic', transforms=transform_val, classes=params.num_classes)
-        return DataLoader(dataset, batch_size_val=params.batch_size_val, shuffle=False, num_workers=params.num_workers)
+                    target_type='semantic', transforms=transform_val, classes=classes)
+        return DataLoader(dataset, batch_size=params.batch_size_val, shuffle=False, num_workers=params.num_workers)
 
 
 def colorize_mask(mask, palette):

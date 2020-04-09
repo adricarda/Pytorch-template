@@ -78,6 +78,7 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
     ckpt_file_path = os.path.join(model_dir, ckpt_filename)
     best_model_wts = copy.deepcopy(model.state_dict())
     best_loss=float('inf')
+    start_epoch=0
 
     for xb, yb in val_dl:
         batch_sample = xb
@@ -93,10 +94,10 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
     else:
         print("=> Initializing from scratch")
 
-    for epoch in range(params["start_epoch"], params["start_epoch"]+params.num_epochs-1 ):
+    for epoch in range(start_epoch, start_epoch + params.num_epochs-1 ):
         # Run one epoch
         current_lr=get_lr(opt)
-        logging.info('Epoch {}/{}, current lr={}'.format(epoch, params["start_epoch"]+params.num_epochs-1, current_lr))
+        logging.info('Epoch {}/{}, current lr={}'.format(epoch, start_epoch+params.num_epochs-1, current_lr))
 
         model.train()
         train_loss, train_metric = train_epoch(model, loss_fn, train_dl, opt, metrics, params)
@@ -180,8 +181,8 @@ if __name__ == '__main__':
     logging.info("Loading the datasets...")
 
     # fetch dataloaders
-    train_dl = data_loader.fetch_dataloader('data_dir', 'train', params)
-    val_dl = data_loader.fetch_dataloader('data_dir', 'val', params)
+    train_dl = data_loader.fetch_dataloader(args.data_dir, 'train', params)
+    val_dl = data_loader.fetch_dataloader(args.data_dir, 'val', params)
 
     logging.info("- done.")
 
@@ -192,7 +193,7 @@ if __name__ == '__main__':
 
     # fetch loss function and metrics
     loss_fn = get_loss_fn(params.loss_fn)
-    metrics = get_metrics(params.metrics)
+    metrics = get_metrics(metrics_name=params.metrics, num_classes=params.num_classes, ignore_index=params.ignore_index)
 
     # Train the model
     logging.info("Starting training for {} epoch(s)".format(params.num_epochs))

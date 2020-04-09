@@ -18,5 +18,5 @@ class Net(nn.Module):
 def get_network(params):
     if params.architecture == 'deeplab_resnet101':
         return deeplabv3_resnet101(pretrained=False, num_classes=params.num_classes)
-    if params.architecture == 'deeplab_resnet101':
+    if params.architecture == 'deeplab_resnet50':
         return deeplabv3_resnet50(pretrained=False, num_classes=params.num_classes)
