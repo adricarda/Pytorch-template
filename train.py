@@ -38,7 +38,7 @@ def get_lr(opt):
 def inference(model, batch):
     model.eval()
     with torch.no_grad():
-        y_pred = model(batch.to(device))
+        y_pred = model(batch.to(device)).detach()
         y_pred = y_pred["out"].cpu()
         y_pred = torch.argmax(y_pred,axis=1)
     return y_pred
@@ -122,7 +122,7 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
                                         'Validation': val_metric_results[0],
                                     }, epoch)
             
-        predictions = inference(model, batch_sample).detach()
+        predictions = inference(model, batch_sample)
         plot = get_predictions_plot(batch_sample, predictions, batch_gt)
         writer.add_image('Predictions', plot, epoch, dataformats='HWC')                          
         
