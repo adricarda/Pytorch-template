@@ -122,7 +122,7 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
                                         'Validation': val_metric_results[0],
                                     }, epoch)
             
-        predictions = inference(model, batch_sample)
+        predictions = inference(model, batch_sample).detach()
         plot = get_predictions_plot(batch_sample, predictions, batch_gt)
         writer.add_image('Predictions', plot, epoch, dataformats='HWC')                          
         
