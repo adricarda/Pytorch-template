@@ -38,7 +38,7 @@ def get_lr(opt):
 def inference(model, batch):
     model.eval()
     with torch.no_grad():
-        y_pred = model(batch.to(device)).detach()
+        y_pred = model(batch.to(device))
         y_pred = y_pred["out"].cpu()
         y_pred = torch.argmax(y_pred,axis=1)
     return y_pred
@@ -65,9 +65,9 @@ def train_epoch(model,loss_fn,dataset_dl,opt=None, metrics=None, params=None):
         running_loss.update(loss_b.item())
 
         if metrics is not None:            
-            output=torch.argmax(output.detach(), dim=1)
+            output=torch.argmax(output, dim=1)
             for metric_name, metric in metrics.items(): 
-                metric.add(output, yb.detach())
+                metric.add(output, yb)
 
     if metrics is not None:
         metrics_results = {}

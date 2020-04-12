@@ -118,7 +118,7 @@ def fetch_dataloader(data_dir, split, params):
 
         dataset=CityScapesDataset(data_dir, split=split, mode='fine',
                     target_type='semantic', transforms=transform_train, classes=classes)
-        return DataLoader(dataset, batch_size=params.batch_size_train, shuffle=True, num_workers=params.num_workers)
+        return DataLoader(dataset, batch_size=params.batch_size_train, shuffle=True, num_workers=params.num_workers, drop_last=True, pin_memory=True)
 
     else:
         transform_val = Compose( [Normalize(mean=mean,std=std)])
@@ -131,7 +131,7 @@ def fetch_dataloader(data_dir, split, params):
             split1, split2 = next(ss.split(indexes))
             dataset=Subset(dataset, split2)        
 
-        return DataLoader(dataset, batch_size=params.batch_size_val, shuffle=False, num_workers=params.num_workers)
+        return DataLoader(dataset, batch_size=params.batch_size_val, shuffle=False, num_workers=params.num_workers, drop_last=True, pin_memory=True)
 
 
 def colorize_mask(mask, palette):
