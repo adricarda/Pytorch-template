@@ -98,7 +98,7 @@ def save_checkpoint(state, is_best, checkpoint_dir='./', filename='checkpoint.ta
         shutil.copyfile(filepath, filepath.replace(filename, 'model_best.tar'))
 
 
-def load_checkpoint(model, optimizer=None, start_epoch=None,
+def load_checkpoint(model, optimizer=None, lr_scheduler=None, start_epoch=None,
                     is_best=False, checkpoint_dir='./', filename='checkpoint.tar'):
     filepath = os.path.join(checkpoint_dir, filename)
     
@@ -113,6 +113,8 @@ def load_checkpoint(model, optimizer=None, start_epoch=None,
         
     if optimizer is not None:
         optimizer.load_state_dict(checkpoint['optim_dict'])
+    if lr_scheduler is not None:
+        lr_scheduler.load_state_dict(checkpoint['scheduler_dict'])
     if start_epoch is not None:
         start_epoch = checkpoint['epoch']
     return model, optimizer, start_epoch

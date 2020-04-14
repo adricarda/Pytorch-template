@@ -43,7 +43,7 @@ def inference(model, batch):
         y_pred = torch.argmax(y_pred,axis=1)
     return y_pred
 
-def train_epoch(model,loss_fn,dataset_dl,opt=None, metrics=None, params=None):
+def train_epoch(model,loss_fn,dataset_dl,opt=None, lr_scheduler=None, metrics=None, params=None):
     running_loss=utils.RunningAverage()
     num_batches=len(dataset_dl)
 
@@ -61,6 +61,9 @@ def train_epoch(model,loss_fn,dataset_dl,opt=None, metrics=None, params=None):
             opt.zero_grad()
             loss_b.backward()
             opt.step()
+
+        if lr_scheduler is not None:
+            lr_scheduler.step()
 
         running_loss.update(loss_b.item())
 
@@ -91,7 +94,8 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
         break
 
     if os.path.exists(ckpt_file_path):
-        model, opt, start_epoch = utils.load_checkpoint(model, False, checkpoint_dir, ckpt_filename, opt, start_epoch) 
+        model, opt, lr_scheduler, start_epoch = utils.load_checkpoint(model, opt, lr_scheduler,
+                                    checkpoint_dir, ckpt_filename, opt, start_epoch) 
         # checkpoint = torch.load(ckpt_file_path)
         # start_epoch = checkpoint['epoch']
         # model.load_state_dict(checkpoint['state_dict'])
@@ -106,7 +110,7 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
         logging.info('Epoch {}/{}, current lr={}'.format(epoch, start_epoch+params.num_epochs-1, current_lr))
 
         model.train()
-        train_loss, train_metrics = train_epoch(model, loss_fn, train_dl, opt, metrics, params)
+        train_loss, train_metrics = train_epoch(model, loss_fn, train_dl, opt, lr_scheduler, metrics, params)
 
         # Evaluate for one epoch on validation set
         val_loss, val_metrics = evaluate(model, loss_fn, val_dl, metrics=metrics, params=params)
@@ -132,7 +136,8 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
         # Save weights
         utils.save_checkpoint({'epoch': epoch + 1,
                                'state_dict': model.state_dict(),
-                               'optim_dict': opt.state_dict()},
+                               'optim_dict': opt.state_dict(),
+                               'scheduler_dict': lr_scheduler.state_dict()},
                               is_best=is_best,
                               checkpoint_dir=checkpoint_dir)
 
@@ -144,10 +149,10 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
             best_json_path = os.path.join(checkpoint_dir, "metrics_val_best_weights.json")
             utils.save_dict_to_json(val_metrics, best_json_path)
 
-        lr_scheduler.step(val_loss)
-        if current_lr != get_lr(opt):
-            print("Loading best model weights!")
-            model.load_state_dict(best_model_wts) 
+        # lr_scheduler.step(val_loss)
+        # if current_lr != get_lr(opt):
+        #     print("Loading best model weights!")
+        #     model.load_state_dict(best_model_wts) 
             
         logging.info("\ntrain loss: %.3f, val loss: %.3f" %(train_loss, val_loss))
         for (train_metric_name, train_metric_results), (val_metric_name, val_metric_results) in zip(train_metrics.items(), val_metrics.items()): 
@@ -190,7 +195,7 @@ if __name__ == '__main__':
     # Define the model and optimizer
     model = get_network(params).to(params.device)
     opt = optim.AdamW(model.parameters(), lr=params.learning_rate)
-    lr_scheduler = ReduceLROnPlateau(opt, mode='min',factor=0.5, patience=4,verbose=1)
+    lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=params.learning_rate, steps_per_epoch=len(train_dl), epochs=params.num_epochs, div_factor=20)
 
     # fetch loss function and metrics
     loss_fn = get_loss_fn(loss_name=params.loss_fn , ignore_index=19)
