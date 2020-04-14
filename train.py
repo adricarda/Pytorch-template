@@ -95,7 +95,7 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
 
     if os.path.exists(ckpt_file_path):
         model, opt, lr_scheduler, start_epoch = utils.load_checkpoint(model, opt, lr_scheduler,
-                                    checkpoint_dir, ckpt_filename, opt, start_epoch) 
+                                    False, checkpoint_dir, ckpt_filename, opt, start_epoch) 
         # checkpoint = torch.load(ckpt_file_path)
         # start_epoch = checkpoint['epoch']
         # model.load_state_dict(checkpoint['state_dict'])
@@ -108,6 +108,7 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
         # Run one epoch
         current_lr=get_lr(opt)
         logging.info('Epoch {}/{}, current lr={}'.format(epoch, start_epoch+params.num_epochs-1, current_lr))
+        writer.add_scalar('Learning_rate', current_lr, epoch)
 
         model.train()
         train_loss, train_metrics = train_epoch(model, loss_fn, train_dl, opt, lr_scheduler, metrics, params)
