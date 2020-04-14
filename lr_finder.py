@@ -8,6 +8,7 @@ import dataloader.dataloader as data_loader
 from model.net import get_network
 from model.losses import get_loss_fn
 import torch.optim as optim
+from tqdm import tqdm
 
 
 parser = argparse.ArgumentParser()
@@ -19,25 +20,25 @@ parser.add_argument('--checkpoint_dir', default=None,
                     help="Directory containing weights to reload before \
                     training")
 
-def find_lr(data_ld, opt, model, criterion, init_value = 1e-8, final_value=10., beta = 0.98):
+def find_lr(data_ld, opt, model, criterion, device, init_value = 1e-8, final_value=10., beta = 0.98):
     num = len(data_ld)-1
     mult = (final_value / init_value) ** (1/num)
     lr = init_value
-    optimizer.param_groups[0]['lr'] = lr
+    opt.param_groups[0]['lr'] = lr
     avg_loss = 0.
     best_loss = 0.
     batch_num = 0
     losses = []
     log_lrs = []
-    for data in data_ld:
+    for (inputs,labels) in tqdm(data_ld):
         batch_num += 1
         #As before, get the loss for this mini-batch of inputs/outputs
-        inputs,labels = data
+        inputs, labels = inputs.to(device), labels.to(device)
         opt.zero_grad()
-        outputs = model(inputs)
+        outputs = model(inputs)['out']
         loss = criterion(outputs, labels)
         #Compute the smoothed loss
-        avg_loss = beta * avg_loss + (1-beta) *loss.data[0]
+        avg_loss = beta * avg_loss + (1-beta) *loss.item()
         smoothed_loss = avg_loss / (1 - beta**batch_num)
         #Stop if the loss is exploding
         if batch_num > 1 and smoothed_loss > 4 * best_loss:
@@ -53,12 +54,12 @@ def find_lr(data_ld, opt, model, criterion, init_value = 1e-8, final_value=10., 
         opt.step()
         #Update the lr for the next step
         lr *= mult
-        optimizer.param_groups[0]['lr'] = lr
+        opt.param_groups[0]['lr'] = lr
     return log_lrs, losses
 
 def plot_lr(log_lrs, losses):
     plt.plot(log_lrs[10:-5],losses[10:-5])
-    plt.savefig('foo.png')
+    plt.savefig('lr_plt.png')
     
 
 if __name__ == '__main__':
@@ -72,7 +73,6 @@ if __name__ == '__main__':
 
     # use GPU if available
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    params.device = device
 
     # Set the random seed for reproducible experiments
     torch.manual_seed(42)
@@ -82,12 +82,12 @@ if __name__ == '__main__':
     train_dl = data_loader.fetch_dataloader(args.data_dir, 'train', params)
 
     # Define the model and optimizer
-    model = get_network(params).to(params.device)
+    model = get_network(params).to(device)
     opt = optim.AdamW(model.parameters(), lr=params.learning_rate)
     loss_fn = get_loss_fn(loss_name=params.loss_fn , ignore_index=19)
 
     if args.checkpoint_dir:
         utils.load_checkpoint(model, False, args.checkpoint_dir) 
     
-    log_lrs, losses = (train_dl, opt, model, loss_fn)
+    log_lrs, losses = find_lr(train_dl, opt, model, loss_fn, device)
     plot_lr(log_lrs, losses)
