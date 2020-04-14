@@ -117,4 +117,4 @@ def load_checkpoint(model, optimizer=None, lr_scheduler=None, start_epoch=None,
         lr_scheduler.load_state_dict(checkpoint['scheduler_dict'])
     if start_epoch is not None:
         start_epoch = checkpoint['epoch']
-    return model, optimizer, start_epoch
+    return model, optimizer, lr_scheduler, start_epoch
