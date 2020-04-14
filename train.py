@@ -25,7 +25,7 @@ parser.add_argument('--data_dir', default='data',
                     help="Directory containing the dataset")
 parser.add_argument('--model_dir', default='experiments/baseline',
                     help="Directory containing params.json")
-parser.add_argument('--checkpoint_dir', default="experiments/baseline/checkpoints",
+parser.add_argument('--checkpoint_dir', default="experiments/baseline",
                     help="Directory containing weights to reload before \
                     training")
 parser.add_argument('--tensorboard_dir', default="experiments/baseline/tensorboard",
@@ -78,9 +78,9 @@ def train_epoch(model,loss_fn,dataset_dl,opt=None, metrics=None, params=None):
         return running_loss(), None
 
 def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params, 
-                    lr_scheduler, model_dir, ckpt_filename, writer):
+                    lr_scheduler, checkpoint_dir, ckpt_filename, writer):
 
-    ckpt_file_path = os.path.join(model_dir, ckpt_filename)
+    ckpt_file_path = os.path.join(checkpoint_dir, ckpt_filename)
     best_model_wts = copy.deepcopy(model.state_dict())
     best_loss=float('inf')
     start_epoch=0
@@ -90,12 +90,13 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
         batch_gt = yb
         break
 
-    if os.path.exists(ckpt_file_path): 
-        checkpoint = torch.load(ckpt_file_path)
-        start_epoch = checkpoint['epoch']
-        model.load_state_dict(checkpoint['state_dict'])
-        opt.load_state_dict(checkpoint['optim_dict'])
-        print("=> loaded checkpoint form {} (epoch {})".format(ckpt_file_path, checkpoint['epoch']))
+    if os.path.exists(ckpt_file_path):
+        model, opt, start_epoch = utils.load_checkpoint(model, False, checkpoint_dir, ckpt_filename, opt, start_epoch) 
+        # checkpoint = torch.load(ckpt_file_path)
+        # start_epoch = checkpoint['epoch']
+        # model.load_state_dict(checkpoint['state_dict'])
+        # opt.load_state_dict(checkpoint['optim_dict'])
+        print("=> loaded checkpoint form {} (epoch {})".format(ckpt_file_path, start_epoch))
     else:
         print("=> Initializing from scratch")
 
@@ -133,14 +134,14 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
                                'state_dict': model.state_dict(),
                                'optim_dict': opt.state_dict()},
                               is_best=is_best,
-                              checkpoint_dir=model_dir)
+                              checkpoint_dir=checkpoint_dir)
 
         # If best_eval, best_save_path
         if is_best:
             logging.info("- Found new best accuracy")
             best_loss = val_loss
             # Save best val metrics in a json file in the model directory
-            best_json_path = os.path.join(model_dir, "metrics_val_best_weights.json")
+            best_json_path = os.path.join(checkpoint_dir, "metrics_val_best_weights.json")
             utils.save_dict_to_json(val_metrics, best_json_path)
 
         lr_scheduler.step(val_loss)
@@ -202,4 +203,4 @@ if __name__ == '__main__':
     # Train the model
     logging.info("Starting training for {} epoch(s)".format(params.num_epochs))
     train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics,
-            params, lr_scheduler, args.model_dir, ckpt_filename, writer)
+            params, lr_scheduler, args.checkpoint_dir, ckpt_filename, writer)
