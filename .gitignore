@@ -7,3 +7,7 @@ experiments/baseline/train.log
 ngrok
 ngrok-stable-linux-amd64.zip
 template_ws.code-workspace
+experiments/baseline/model_best.tar
+experiments/baseline/metrics_val_best_weights.json
+experiments/baseline/checkpoint.tar
+__pycache__

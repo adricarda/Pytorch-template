@@ -83,6 +83,7 @@ def train_epoch(model,loss_fn,dataset_dl,opt=None, lr_scheduler=None, metrics=No
 def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params, 
                     lr_scheduler, checkpoint_dir, ckpt_filename, writer):
 
+    #todo restore best checkpoint
     ckpt_file_path = os.path.join(checkpoint_dir, ckpt_filename)
     best_model_wts = copy.deepcopy(model.state_dict())
     best_loss=float('inf')
@@ -96,18 +97,14 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
     if os.path.exists(ckpt_file_path):
         model, opt, lr_scheduler, start_epoch = utils.load_checkpoint(model, opt, lr_scheduler,
                                     start_epoch, False, checkpoint_dir, ckpt_filename) 
-        # checkpoint = torch.load(ckpt_file_path)
-        # start_epoch = checkpoint['epoch']
-        # model.load_state_dict(checkpoint['state_dict'])
-        # opt.load_state_dict(checkpoint['optim_dict'])
         print("=> loaded checkpoint form {} (epoch {})".format(ckpt_file_path, start_epoch))
     else:
         print("=> Initializing from scratch")
 
-    for epoch in range(start_epoch, params.num_epochs-start_epoch ):
+    for epoch in range(start_epoch, params.num_epochs ):
         # Run one epoch
         current_lr=get_lr(opt)
-        logging.info('Epoch {}/{}, current lr={}'.format(epoch, params.num_epochs-start_epoch, current_lr))
+        logging.info('Epoch {}/{}, current lr={}'.format(epoch, params.num_epochs, current_lr))
         writer.add_scalar('Learning_rate', current_lr, epoch)
 
         model.train()

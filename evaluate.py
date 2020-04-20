@@ -49,7 +49,7 @@ def evaluate(model,loss_fn,dataset_dl,opt=None, metrics=None, params=None):
     if metrics is not None:
         metrics_results = {}
         for metric_name, metric in metrics.items(): 
-            metrics_results[metric_name] = metric.value()                  
+            metrics_results[metric_name] = metric.value()               
         return running_loss(), metrics_results
     else:   
         return running_loss(), None
@@ -75,8 +75,7 @@ if __name__ == '__main__':
         torch.cuda.manual_seed(42)
 
     # fetch dataloaders
-    dataloaders = data_loader.fetch_dataloader(['test'], args.data_dir, params)
-    test_dl = dataloaders['test']
+    val_dl = data_loader.fetch_dataloader(args.data_dir, 'val', params)
 
     # Define the model
     model = get_network(params).to(params.device)
@@ -93,6 +92,8 @@ if __name__ == '__main__':
     model, _, _, _ = utils.load_checkpoint(model, is_best=True, checkpoint_dir=args.checkpoint_dir)
 
     # Evaluate
-    eval_loss, test_metrics = evaluate(model, loss_fn, test_dl, metrics, params)
+    eval_loss, val_metrics = evaluate(model, loss_fn, val_dl, metrics=metrics, params=params)
+    for val_metric_name, val_metric_results in val_metrics.items(): 
+        print("{}: {}".format(val_metric_name, val_metric_results))
     best_json_path = os.path.join(args.model_dir, "evaluation.json")
-    utils.save_dict_to_json(test_metrics, best_json_path)      
+    utils.save_dict_to_json(val_metrics, best_json_path)      
