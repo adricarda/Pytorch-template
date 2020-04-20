@@ -3,7 +3,7 @@
 import argparse
 import logging
 import os
-
+import random
 import numpy as np
 import torch
 import utils
@@ -44,7 +44,7 @@ def evaluate(model,loss_fn,dataset_dl,opt=None, metrics=None, params=None):
             if metrics is not None:            
                 output=torch.argmax(output.detach(), dim=1)
                 for metric_name, metric in metrics.items(): 
-                    metric.add(output, yb.detach())
+                    metric.add(output, yb)
 
     if metrics is not None:
         metrics_results = {}
@@ -70,9 +70,13 @@ if __name__ == '__main__':
     params.device = device
 
     # Set the random seed for reproducible experiments
-    torch.manual_seed(42)
+    seed = 42
+    torch.manual_seed(seed)
+    random.seed(seed)
+    torch.backends.cudnn.deterministic = True
+    np.random.seed(seed)
     if torch.cuda.is_available():
-        torch.cuda.manual_seed(42)
+        torch.cuda.manual_seed(seed)
 
     # fetch dataloaders
     val_dl = data_loader.fetch_dataloader(args.data_dir, 'val', params)
@@ -89,11 +93,11 @@ if __name__ == '__main__':
                 num_classes=params.num_classes+1, ignore_index=params.ignore_index)
 
     # Reload weights from the saved file
-    model, _, _, _ = utils.load_checkpoint(model, is_best=True, checkpoint_dir=args.checkpoint_dir)
+    model, _, _, _, _ = utils.load_checkpoint(model, is_best=True, checkpoint_dir=args.checkpoint_dir)
 
     # Evaluate
     eval_loss, val_metrics = evaluate(model, loss_fn, val_dl, metrics=metrics, params=params)
-    for val_metric_name, val_metric_results in val_metrics.items(): 
-        print("{}: {}".format(val_metric_name, val_metric_results))
     best_json_path = os.path.join(args.model_dir, "evaluation.json")
-    utils.save_dict_to_json(val_metrics, best_json_path)      
+    for val_metric_name, val_metric_results in val_metrics.items(): 
+        logging.info("%s: %.3f" %(val_metric_name, val_metric_results))
+    utils.save_dict_to_json(val_metrics, best_json_path)

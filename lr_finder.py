@@ -2,6 +2,7 @@ import torch
 import math
 import argparse
 import os
+import random
 import utils
 import matplotlib.pyplot as plt
 import dataloader.dataloader as data_loader
@@ -9,6 +10,7 @@ from model.net import get_network
 from model.losses import get_loss_fn
 import torch.optim as optim
 from tqdm import tqdm
+import numpy as np
 
 
 parser = argparse.ArgumentParser()
@@ -41,7 +43,7 @@ def find_lr(data_ld, opt, model, criterion, device, init_value = 1e-8, final_val
         avg_loss = beta * avg_loss + (1-beta) *loss.item()
         smoothed_loss = avg_loss / (1 - beta**batch_num)
         #Stop if the loss is exploding
-        if batch_num > 1 and smoothed_loss > 4 * best_loss:
+        if batch_num > 1 and smoothed_loss > 3 * best_loss:
             return log_lrs, losses
         #Record the best loss
         if smoothed_loss < best_loss or batch_num==1:
@@ -75,9 +77,13 @@ if __name__ == '__main__':
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     # Set the random seed for reproducible experiments
-    torch.manual_seed(42)
+    seed = 42
+    torch.manual_seed(seed)
+    random.seed(seed)
+    torch.backends.cudnn.deterministic = True
+    np.random.seed(seed)
     if torch.cuda.is_available():
-        torch.cuda.manual_seed(42)
+        torch.cuda.manual_seed(seed)
 
     train_dl = data_loader.fetch_dataloader(args.data_dir, 'train', params)
 
@@ -87,7 +93,7 @@ if __name__ == '__main__':
     loss_fn = get_loss_fn(loss_name=params.loss_fn , ignore_index=19)
 
     if args.checkpoint_dir:
-        model, _, _, _ = utils.load_checkpoint(model, is_best=False, checkpoint_dir=args.checkpoint_dir) 
+        model, _, _, _, _ = utils.load_checkpoint(model, is_best=False, checkpoint_dir=args.checkpoint_dir) 
     
     log_lrs, losses = find_lr(train_dl, opt, model, loss_fn, device)
     plot_lr(log_lrs, losses)

@@ -11,3 +11,5 @@ experiments/baseline/model_best.tar
 experiments/baseline/metrics_val_best_weights.json
 experiments/baseline/checkpoint.tar
 __pycache__
+experiments/resnet50/tensorboard/
+experiments/resnet50/train.log
