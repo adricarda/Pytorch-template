@@ -23,12 +23,9 @@ from albumentations import (
 from torch.utils.data import Dataset, DataLoader
 from collections import namedtuple
 
-mean = [0.286, 0.325, 0.283]
-std = [0.176, 0.180, 0.177]
 
 class CityScapesDataset(Cityscapes):
-    mean = [0.286, 0.325, 0.283]
-    std = [0.176, 0.180, 0.177]
+
     # Based on https://github.com/mcordts/cityscapesScripts
     CityscapesClass = namedtuple('CityscapesClass', ['name', 'id', 'train_id', 'category', 'category_id',
                                                     'has_instances', 'ignore_in_eval', 'color'])
@@ -71,22 +68,19 @@ class CityScapesDataset(Cityscapes):
     ]
 
     def __init__(self, root, split='train', mode='fine', target_type='instance',
-                 transform=None, target_transform=None, transforms=None, ignore_label=19):
+                 transform=None, target_transform=None, transforms=None, ignore_label=19,
+                 mean=[0.286, 0.325, 0.283], std=[0.176, 0.180, 0.177]):
     
         super(CityScapesDataset, self).__init__(root, split, mode, target_type,
                  transform, target_transform, transforms)
-
-        self.id_to_trainId = {cs_class.id: cs_class.train_id for cs_class in self.classes}
+        self.mean = mean
+        self.std = std
         self.palette = []
-        labels = range(19)
-        for cs_class in self.classes:
-            if cs_class.train_id in labels:
-                R, G, B = cs_class.color
-                self.palette.extend((R, G, B))
-
-        zero_pad = 256 * 3 - len(self.palette)
-        for i in range(zero_pad):
-            self.palette.append(0)
+        self.id_to_trainId = {cs_class.id: cs_class.train_id for cs_class in self.classes}
+        self.colors = {cs_class.train_id: cs_class.color for cs_class in self.classes}
+        for train_id, color in sorted(self.colors.items(), key=lambda item: item[0]):
+            R, G, B = color
+            self.palette.extend((R, G, B))
 
     def __getitem__(self, index):
         img_path, mask_path = self.images[index], self.targets[index][0]
@@ -96,15 +90,17 @@ class CityScapesDataset(Cityscapes):
         mask_copy = mask.copy()
         for k, v in self.id_to_trainId.items():
             mask_copy[mask == k] = v
-        mask = Image.fromarray(mask_copy.astype(np.uint8))
 
         if self.transforms is not None:
-            transformed = self.transforms(image=np.array(img), mask=np.array(mask))
+            transformed = self.transforms(image=np.array(img), mask=mask_copy)
             img = transformed['image']
-            mask = transformed['mask']
-        img = to_tensor(img)            
-        mask = torch.from_numpy(np.array(mask)).type(torch.long)    
-        return img, mask
+            mask_copy = transformed['mask']
+        img = to_tensor(img)
+        mask_copy = torch.from_numpy(mask_copy).type(torch.long)    
+        return img, mask_copy
+
+    def __len__(self):
+        return len(self.images)
 
     def colorize_mask(self, mask):
         # mask: numpy array of the mask
@@ -126,6 +122,8 @@ class CityScapesDataset(Cityscapes):
         num_images = batch_sample.size()[0]
         fig, m_axs = plt.subplots(3, num_images, figsize=(12, 10), squeeze=False)
         plt.subplots_adjust(hspace = 0.1, wspace = 0.1)
+        if predictions.dim() == 4:
+            predictions = torch.argmax(predictions, dim=1)
 
         for image, prediction, gt, (axis1, axis2, axis3) in zip(batch_sample, predictions, batch_gt, m_axs.T):
             
@@ -155,19 +153,26 @@ class CityScapesDataset(Cityscapes):
 def fetch_dataloader(data_dir, split, params):
     h, w = params.crop_h, params.crop_w
 
+    mean = [0.286, 0.325, 0.283]
+    std = [0.176, 0.180, 0.177]
+    
     if split == 'train':
         transform_train = Compose([RandomCrop(h,w),
                     HorizontalFlip(p=0.5), 
                     Normalize(mean=mean,std=std)])
 
         dataset=CityScapesDataset(data_dir, split=split, mode='fine',
-                    target_type='semantic', transforms=transform_train)
+                    target_type='semantic', transforms=transform_train,
+                    mean=mean, std=std)
         return DataLoader(dataset, batch_size=params.batch_size_train, shuffle=True, num_workers=params.num_workers, drop_last=True, pin_memory=True)
 
     else:
         transform_val = Compose( [Normalize(mean=mean,std=std)])
+
         dataset=CityScapesDataset(data_dir, split=split, mode='fine',
-                    target_type='semantic', transforms=transform_val)
+                    target_type='semantic', transforms=transform_val,
+                    mean=mean, std=std)
+
         #reduce validation data to speed up training
         if "split_validation" in params.dict:
             ss = ShuffleSplit(n_splits=1, test_size=params.split_validation, random_state=42)
@@ -176,7 +181,3 @@ def fetch_dataloader(data_dir, split, params):
             dataset=Subset(dataset, split2)        
 
         return DataLoader(dataset, batch_size=params.batch_size_val, shuffle=False, num_workers=params.num_workers, drop_last=True, pin_memory=True)
-
-
-
-

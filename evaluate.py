@@ -12,6 +12,7 @@ from tqdm import tqdm
 import dataloader.dataloader as data_loader
 from model.losses import get_loss_fn
 from model.metrics import get_metrics
+from collections import OrderedDict
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_dir', default='data',
@@ -47,9 +48,9 @@ def evaluate(model,loss_fn,dataset_dl,opt=None, metrics=None, params=None):
                     metric.add(output, yb)
 
     if metrics is not None:
-        metrics_results = {}
-        for metric_name, metric in metrics.items(): 
-            metrics_results[metric_name] = metric.value()               
+        metrics_results = OrderedDict({})
+        for metric_name, metric in metrics.items():
+            metrics_results[metric_name] = metric.value()
         return running_loss(), metrics_results
     else:   
         return running_loss(), None
@@ -87,7 +88,7 @@ if __name__ == '__main__':
     # fetch loss function and metrics
     loss_fn = get_loss_fn(loss_name=params.loss_fn , ignore_index=19)
     #num_classes+1 for background.
-    metrics = {}
+    metrics = OrderedDict({})
     for metric in params.metrics:
         metrics[metric]= get_metrics(metrics_name=metric,
                 num_classes=params.num_classes+1, ignore_index=params.ignore_index)

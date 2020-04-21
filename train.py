@@ -17,6 +17,7 @@ from evaluate import evaluate
 from model.losses import get_loss_fn
 from model.metrics import get_metrics
 from model.net import get_network
+from collections import OrderedDict
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_dir', default='data',
@@ -40,7 +41,6 @@ def inference(model, batch):
     with torch.no_grad():
         y_pred = model(batch.to(device))
         y_pred = y_pred["out"].cpu()
-        y_pred = torch.argmax(y_pred, axis=1)
     return y_pred
 
 
@@ -69,12 +69,11 @@ def train_epoch(model, loss_fn, dataset_dl, opt=None, lr_scheduler=None, metrics
         running_loss.update(loss_b.item())
 
         if metrics is not None:
-            output = torch.argmax(output, dim=1)
             for metric_name, metric in metrics.items():
                 metric.add(output.detach(), yb)
 
     if metrics is not None:
-        metrics_results = {}
+        metrics_results = OrderedDict({})
         for metric_name, metric in metrics.items():
             metrics_results[metric_name] = metric.value()
         return running_loss(), metrics_results
@@ -88,7 +87,7 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
     # todo restore best checkpoint
     ckpt_file_path = os.path.join(checkpoint_dir, ckpt_filename)
     best_model_wts = copy.deepcopy(model.state_dict())
-    best_value = float('inf')
+    best_value = -float('inf')
     start_epoch = 0
 
     for xb, yb in val_dl:
@@ -131,7 +130,6 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
                 'Validation': val_metric_results[0],
             }, epoch)
 
-        # TODO inserisci get prediction nel dataloader
         predictions = inference(model, batch_sample)
         plot = train_dl.dataset.get_predictions_plot(batch_sample, predictions, batch_gt)
         writer.add_image('Predictions', plot, epoch, dataformats='HWC')
@@ -139,7 +137,6 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
         # get value for first metric
         current_value = list(val_metrics.values())[0][0]
         is_best = current_value >= best_value
-        print()
 
         # If best_eval, best_save_path
         if is_best:
@@ -212,7 +209,7 @@ if __name__ == '__main__':
     # fetch loss function and metrics
     loss_fn = get_loss_fn(loss_name=params.loss_fn, ignore_index=19)
     # num_classes+1 for background.
-    metrics = {}
+    metrics = OrderedDict({})
     for metric in params.metrics:
         metrics[metric] = get_metrics(metrics_name=metric,
                                       num_classes=params.num_classes+1, ignore_index=params.ignore_index)
