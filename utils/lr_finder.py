@@ -18,7 +18,7 @@ parser.add_argument('--data_dir', default='data',
                     help="Directory containing the dataset")
 parser.add_argument('--model_dir', default='experiments/baseline',
                     help="Directory containing params.json")
-parser.add_argument('--checkpoint_dir', default=None,
+parser.add_argument('--checkpoint_dir', default='experiments/baseline/ckpt',
                     help="Directory containing weights to reload before \
                     training")
 
@@ -90,10 +90,10 @@ if __name__ == '__main__':
     # Define the model and optimizer
     model = get_network(params).to(device)
     opt = optim.AdamW(model.parameters(), lr=params.learning_rate)
-    loss_fn = get_loss_fn(loss_name=params.loss_fn , ignore_index=19)
+    loss_fn = get_loss_fn(params)
 
     if args.checkpoint_dir:
-        model, _, _, _, _ = utils.load_checkpoint(model, is_best=False, checkpoint_dir=args.checkpoint_dir) 
+        model = utils.load_checkpoint(model, is_best=False, checkpoint_dir=args.checkpoint_dir)[0]
     
     log_lrs, losses = find_lr(train_dl, opt, model, loss_fn, device)
     plot_lr(log_lrs, losses)

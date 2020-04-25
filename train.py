@@ -86,29 +86,26 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
 
     # todo restore best checkpoint
     ckpt_file_path = os.path.join(checkpoint_dir, ckpt_filename)
-    best_model_wts = copy.deepcopy(model.state_dict())
+    early_stopping = utils.EarlyStopping(patience=10, verbose=True)
     best_value = -float('inf')
     start_epoch = 0
 
-    for xb, yb in val_dl:
-        batch_sample = xb
-        batch_gt = yb
-        break
+    batch_sample_train, batch_gt_train = next(iter(train_dl))
+    batch_sample_val, batch_gt_val = next(iter(val_dl))
 
     if os.path.exists(ckpt_file_path):
         model, opt, lr_scheduler, start_epoch, best_value = utils.load_checkpoint(model, opt, lr_scheduler,
-                                                                                  start_epoch, False, best_value, checkpoint_dir, ckpt_filename)
-
+                                    start_epoch, False, best_value, checkpoint_dir, ckpt_filename)
         print("=> loaded checkpoint form {} (epoch {})".format(
             ckpt_file_path, start_epoch))
     else:
         print("=> Initializing from scratch")
 
-    for epoch in range(start_epoch, start_epoch + params.num_epochs-1):
+    for epoch in range(start_epoch, params.num_epochs-1):
         # Run one epoch
         current_lr = get_lr(opt)
         logging.info('Epoch {}/{}, current lr={}'.format(epoch,
-                                                         params.num_epochs, current_lr))
+                                                         params.num_epochs-1, current_lr))
         writer.add_scalar('Learning_rate', current_lr, epoch)
 
         model.train()
@@ -117,7 +114,7 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
 
         # Evaluate for one epoch on validation set
         val_loss, val_metrics = evaluate(
-            model, loss_fn, val_dl, metrics=metrics, params=params)
+            model, val_dl, loss_fn=loss_fn, metrics=metrics, params=params)
 
         writer.add_scalars('Loss', {
             'Training': train_loss,
@@ -130,9 +127,17 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
                 'Validation': val_metric_results[0],
             }, epoch)
 
-        predictions = inference(model, batch_sample)
-        plot = train_dl.dataset.get_predictions_plot(batch_sample, predictions, batch_gt)
-        writer.add_image('Predictions', plot, epoch, dataformats='HWC')
+        if epoch % 5 == 0:
+            predictions = inference(model, batch_sample_train)
+            plot = train_dl.dataset.get_predictions_plot(
+                batch_sample_train, predictions.cpu(), batch_gt_train)
+            writer.add_image('Predictions_train', plot,
+                             epoch, dataformats='HWC')
+
+            predictions = inference(model, batch_sample_val)
+            plot = train_dl.dataset.get_predictions_plot(
+                batch_sample_val, predictions.cpu(), batch_gt_val)
+            writer.add_image('Predictions_val', plot, epoch, dataformats='HWC')
 
         # get value for first metric
         current_value = list(val_metrics.values())[0][0]
@@ -148,12 +153,14 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
             utils.save_dict_to_json(val_metrics, best_json_path)
 
         utils.save_checkpoint({'epoch': epoch + 1,
-                               'state_dict': model.state_dict(),
-                               'optim_dict': opt.state_dict(),
-                               'scheduler_dict': lr_scheduler.state_dict(),
-                               'best_value': best_value},
-                              is_best=is_best,
-                              checkpoint_dir=checkpoint_dir)
+                                'state_dict': model.state_dict(),
+                                'optim_dict': opt.state_dict(),
+                                'scheduler_dict': lr_scheduler.state_dict(),
+                                'best_value': best_value},
+                                is_best=is_best,
+                                checkpoint_dir=checkpoint_dir,
+                                filename=ckpt_filename)
+
 
         logging.info("\ntrain loss: %.3f, val loss: %.3f" %
                      (train_loss, val_loss))
