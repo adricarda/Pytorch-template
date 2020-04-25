@@ -1,5 +1,4 @@
 .vscode
-data/*
 model/__pycache__/
 experiments/baseline/tensorboard/
 experiments/baseline/logs/
@@ -15,3 +14,4 @@ experiments/resnet50/ckpt
 experiments/resnet101/tensorboard/
 experiments/resnet101/logs
 experiments/resnet101/ckpt
+data/cityscapes/*

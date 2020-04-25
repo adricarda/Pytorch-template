@@ -49,7 +49,7 @@ class CityScapesDataset(Dataset):
         CityscapesClass('train', 31, 16, 'vehicle', 7, True, False, (0, 80, 100)),
         CityscapesClass('motorcycle', 32, 17, 'vehicle', 7, True, False, (0, 0, 230)),
         CityscapesClass('bicycle', 33, 18, 'vehicle', 7, True, False, (119, 11, 32)),
-        CityscapesClass('license plate', -1, 19, 'vehicle', 7, False, True, (0, 0, 142)),
+        CityscapesClass('license plate', -1, 19, 'vehicle', 7, False, True, (0, 0, 0)),
     ]
 
     def __init__(self, root, txt_file, transforms=None, mean=[0.286, 0.325, 0.283], std=[0.176, 0.180, 0.177]):
@@ -141,7 +141,7 @@ class CityScapesDataset(Dataset):
             axis2.imshow(prediction)
             axis2.set_axis_off()
             
-            gt = self.colorize_mask(gt, encode_with_train_id=True)
+            gt = self.colorize_mask(gt)
             axis3.imshow(gt)
             axis3.set_axis_off()
 

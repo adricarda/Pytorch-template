@@ -110,7 +110,20 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
         current_lr = get_lr(opt)
         logging.info('Epoch {}/{}, current lr={}'.format(epoch,
                                                          params.num_epochs-1, current_lr))
+        
         writer.add_scalar('Learning_rate', current_lr, epoch)
+
+        if epoch % 5 == 0:
+            predictions = inference(model, batch_sample_train)
+            plot = train_dl.dataset.get_predictions_plot(
+                batch_sample_train, predictions.cpu(), batch_gt_train)
+            writer.add_image('Predictions_train', plot,
+                             epoch, dataformats='HWC')
+
+            predictions = inference(model, batch_sample_val)
+            plot = train_dl.dataset.get_predictions_plot(
+                batch_sample_val, predictions.cpu(), batch_gt_val)
+            writer.add_image('Predictions_val', plot, epoch, dataformats='HWC')
 
         model.train()
         train_loss, train_metrics = train_epoch(
@@ -130,18 +143,6 @@ def train_and_evaluate(model, train_dl, val_dl, opt, loss_fn, metrics, params,
                 'Training': train_metric_results[0],
                 'Validation': val_metric_results[0],
             }, epoch)
-
-        if epoch % 5 == 0:
-            predictions = inference(model, batch_sample_train)
-            plot = train_dl.dataset.get_predictions_plot(
-                batch_sample_train, predictions.cpu(), batch_gt_train)
-            writer.add_image('Predictions_train', plot,
-                             epoch, dataformats='HWC')
-
-            predictions = inference(model, batch_sample_val)
-            plot = train_dl.dataset.get_predictions_plot(
-                batch_sample_val, predictions.cpu(), batch_gt_val)
-            writer.add_image('Predictions_val', plot, epoch, dataformats='HWC')
 
         # get value for first metric
         current_value = list(val_metrics.values())[0][0]
