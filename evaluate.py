@@ -9,7 +9,7 @@ import torch
 import utils.utils as utils
 from model.net import get_network
 from tqdm import tqdm
-import dataloader.dataloader as data_loader
+import dataloader.dataloader as dataloader
 from model.losses import get_loss_fn
 from model.metrics import get_metrics
 from collections import OrderedDict
@@ -22,6 +22,8 @@ parser.add_argument('--model_dir', default='experiments/baseline',
 parser.add_argument('--checkpoint_dir', default="experiments/baseline/ckpt",
                     help="Directory containing weights to reload before \
                     training") 
+parser.add_argument('--txt_val', default='/content/drive/My Drive/cityscapes/cityscapes_val.txt',
+                    help="Txt file containing path to validation images")
 
 
 def evaluate(model, dataset_dl, loss_fn=None, metrics=None, params=None):
@@ -83,8 +85,9 @@ if __name__ == '__main__':
         torch.cuda.manual_seed(seed)
 
     # fetch dataloaders
-    val_dl = data_loader.fetch_dataloader(args.data_dir, 'val', params)
-
+    # fetch dataloaders
+    val_dl = dataloader.fetch_dataloader(
+        args.data_dir, args.txt_val, "val", params)
     # Define the model
     model = get_network(params).to(params.device)
 

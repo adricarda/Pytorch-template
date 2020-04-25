@@ -5,7 +5,7 @@ import os
 import random
 import utils
 import matplotlib.pyplot as plt
-import dataloader.dataloader as data_loader
+import dataloader.dataloader as dataloader
 from model.net import get_network
 from model.losses import get_loss_fn
 import torch.optim as optim
@@ -21,6 +21,9 @@ parser.add_argument('--model_dir', default='experiments/baseline',
 parser.add_argument('--checkpoint_dir', default='experiments/baseline/ckpt',
                     help="Directory containing weights to reload before \
                     training")
+parser.add_argument('--txt_train', default='/content/drive/My Drive/cityscapes/cityscapes_train.txt',
+                    help="Txt file containing path to training images")
+
 
 def find_lr(data_ld, opt, model, criterion, device, init_value = 1e-8, final_value=10., beta = 0.98):
     num = len(data_ld)-1
@@ -85,7 +88,7 @@ if __name__ == '__main__':
     if torch.cuda.is_available():
         torch.cuda.manual_seed(seed)
 
-    train_dl = data_loader.fetch_dataloader(args.data_dir, 'train', params)
+    train_dl = dataloader.fetch_dataloader(args.data_dir, args.txt_train, 'train', params)
 
     # Define the model and optimizer
     model = get_network(params).to(device)

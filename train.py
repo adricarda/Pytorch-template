@@ -11,7 +11,7 @@ import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-import dataloader.dataloader as data_loader
+import dataloader.dataloader as dataloader
 import utils.utils as utils
 from evaluate import evaluate
 from model.losses import get_loss_fn
@@ -29,6 +29,10 @@ parser.add_argument('--checkpoint_dir', default="experiments/baseline/ckpt",
                     training")
 parser.add_argument('--tensorboard_dir', default="experiments/baseline/tensorboard",
                     help="Directory for Tensorboard data")
+parser.add_argument('--txt_train', default='/content/drive/My Drive/cityscapes/cityscapes_train.txt',
+                    help="Txt file containing path to training images")
+parser.add_argument('--txt_val', default='/content/drive/My Drive/cityscapes/cityscapes_val.txt',
+                    help="Txt file containing path to validation images")
 
 
 def get_lr(opt):
@@ -206,8 +210,10 @@ if __name__ == '__main__':
     logging.info("Loading the datasets...")
 
     # fetch dataloaders
-    train_dl = data_loader.fetch_dataloader(args.data_dir, 'train', params)
-    val_dl = data_loader.fetch_dataloader(args.data_dir, 'val', params)
+    train_dl = dataloader.fetch_dataloader(
+        args.data_dir, args.txt_train, "train", params)
+    val_dl = dataloader.fetch_dataloader(
+        args.data_dir, args.txt_val, "val", params)
 
     logging.info("- done.")
 
