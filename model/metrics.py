@@ -214,8 +214,8 @@ class Accuracy():
 
         return [np.diag(conf_matrix).sum() / conf_matrix.sum()]
 
-def get_metrics(metrics_name="iou", **kwargs):
+def get_metrics(metrics_name, params):
     if metrics_name=='iou':
-        return IoU(**kwargs)
+        return IoU(num_classes=params.num_classes+1, ignore_index=params.ignore_index)
     if metrics_name=='accuracy':
-        return Accuracy(**kwargs)
+        return Accuracy(num_classes=params.num_classes+1, ignore_index=params.ignore_index)

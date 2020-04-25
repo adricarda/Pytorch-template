@@ -12,7 +12,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 import dataloader.dataloader as data_loader
-import utils
+import utils.utils as utils
 from evaluate import evaluate
 from model.losses import get_loss_fn
 from model.metrics import get_metrics
@@ -24,7 +24,7 @@ parser.add_argument('--data_dir', default='data',
                     help="Directory containing the dataset")
 parser.add_argument('--model_dir', default='experiments/baseline',
                     help="Directory containing params.json")
-parser.add_argument('--checkpoint_dir', default="experiments/baseline",
+parser.add_argument('--checkpoint_dir', default="experiments/baseline/ckpt",
                     help="Directory containing weights to reload before \
                     training")
 parser.add_argument('--tensorboard_dir', default="experiments/baseline/tensorboard",
@@ -189,7 +189,11 @@ if __name__ == '__main__':
         torch.cuda.manual_seed(seed)
 
     # Set the logger
-    utils.set_logger(os.path.join(args.model_dir, 'train.log'))
+    log_dir = os.path.join(args.model_dir, "logs")
+    if not os.path.exists(log_dir):
+        print("Making log directory {}".format(log_dir))
+        os.mkdir(log_dir)
+    utils.set_logger(os.path.join(log_dir, "train.log"))
 
     # Create the input data pipeline
     logging.info("Loading the datasets...")
@@ -207,12 +211,11 @@ if __name__ == '__main__':
         opt, max_lr=params.learning_rate, steps_per_epoch=len(train_dl), epochs=params.num_epochs, div_factor=20)
 
     # fetch loss function and metrics
-    loss_fn = get_loss_fn(loss_name=params.loss_fn, ignore_index=19)
+    loss_fn = get_loss_fn(params)
     # num_classes+1 for background.
     metrics = OrderedDict({})
     for metric in params.metrics:
-        metrics[metric] = get_metrics(metrics_name=metric,
-                                      num_classes=params.num_classes+1, ignore_index=params.ignore_index)
+        metrics[metric] = get_metrics(metric, params)
 
     # Train the model
     logging.info("Starting training for {} epoch(s)".format(params.num_epochs))

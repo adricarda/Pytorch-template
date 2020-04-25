@@ -4,9 +4,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-def get_loss_fn(loss_name='crossentropy', **kwargs):
+def get_loss_fn(params):
 
-    if loss_name=='crossentropy':
-        return nn.CrossEntropyLoss(**kwargs)
+    if params.loss_fn=='crossentropy':
+        return nn.CrossEntropyLoss(ignore_index=params.ignore_index)
     else:
-        return nn.CrossEntropyLoss(**kwargs)
+        raise NotImplementedError

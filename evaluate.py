@@ -6,7 +6,7 @@ import os
 import random
 import numpy as np
 import torch
-import utils
+import utils.utils as utils
 from model.net import get_network
 from tqdm import tqdm
 import dataloader.dataloader as data_loader
@@ -19,7 +19,7 @@ parser.add_argument('--data_dir', default='data',
                     help="Directory containing the dataset")
 parser.add_argument('--model_dir', default='experiments/baseline',
                     help="Directory containing params.json")
-parser.add_argument('--checkpoint_dir', default="experiments/baseline/checkpoints",
+parser.add_argument('--checkpoint_dir', default="experiments/baseline/ckpt",
                     help="Directory containing weights to reload before \
                     training") 
 
@@ -86,15 +86,14 @@ if __name__ == '__main__':
     model = get_network(params).to(params.device)
 
     # fetch loss function and metrics
-    loss_fn = get_loss_fn(loss_name=params.loss_fn , ignore_index=19)
+    loss_fn = get_loss_fn(params)
     #num_classes+1 for background.
     metrics = OrderedDict({})
     for metric in params.metrics:
-        metrics[metric]= get_metrics(metrics_name=metric,
-                num_classes=params.num_classes+1, ignore_index=params.ignore_index)
+        metrics[metric]= get_metrics(metric, params)
 
     # Reload weights from the saved file
-    model, _, _, _, _ = utils.load_checkpoint(model, is_best=True, checkpoint_dir=args.checkpoint_dir)
+    model = utils.load_checkpoint(model, is_best=True, checkpoint_dir=args.checkpoint_dir)[0]
 
     # Evaluate
     eval_loss, val_metrics = evaluate(model, loss_fn, val_dl, metrics=metrics, params=params)
