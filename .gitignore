@@ -2,8 +2,9 @@
 data/*
 model/__pycache__/
 experiments/baseline/tensorboard/
+experiments/baseline/logs/
+experiments/baseline/ckpt/
 dataloader/__pycache__/
-experiments/baseline/train.log
 ngrok
 ngrok-stable-linux-amd64.zip
 template_ws.code-workspace
