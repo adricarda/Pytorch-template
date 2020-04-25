@@ -1,4 +1,0 @@
-2020-04-25 09:34:59,812:INFO: Loading the datasets...
-2020-04-25 09:34:59,925:INFO: - done.
-2020-04-25 09:35:32,655:INFO: Starting training for 70 epoch(s)
-2020-04-25 09:36:07,846:INFO: Epoch 70/70, current lr=5.007466165325113e-10
